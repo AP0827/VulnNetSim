@@ -83,19 +83,17 @@ const SupplyChainGraph = ({ attackType, data }) => {
         }
       case 'API Breaches':
         switch (topology) {
-          case 'cascade':
-            // Spread through API dependency chain
-            return node.connectedEdges().connectedNodes().union(
-              node.connectedEdges().connectedNodes().connectedEdges().connectedNodes()
-            );
+          case 'cascade': {
+            let first = node.outgoers('edge').targets();
+            let second = first.outgoers('edge').targets();
+            return first.union(second).difference(node);
+          }
           case 'circular':
-            // Spread through circular dependencies
-            return node.neighborhood('node').filter(n => 
-              n.connectedEdges().connectedNodes().has(node)
-            );
+            // Spread through circular dependencies (cycle detection)
+            return node.closedNeighborhood().filter(n => n.id() !== node.id() && n.connectedEdges().connectedNodes().has(node));
           default:
-            // Default: direct API connections
-            return node.connectedEdges().connectedNodes();
+            // Default: only direct outgoing API connections
+            return node.outgoers('edge').targets();
         }
       case 'Supply Chain Compromise':
         switch (topology) {
@@ -137,6 +135,7 @@ const SupplyChainGraph = ({ attackType, data }) => {
         'border-opacity': 1,
         'text-outline-color': '#fff',
         'text-outline-width': 2,
+        'color': '#000',
       });
     });
 
@@ -174,6 +173,7 @@ const SupplyChainGraph = ({ attackType, data }) => {
         'border-opacity': 1,
         'text-outline-color': '#fff',
         'text-outline-width': 2,
+        'color': '#000',
       });
       setCompromisedNodes(prev => new Set([...prev, currentNode.id()]));
 
@@ -204,6 +204,7 @@ const SupplyChainGraph = ({ attackType, data }) => {
               'border-opacity': 1,
               'text-outline-color': '#fff',
               'text-outline-width': 2,
+              'color': '#000',
             });
             setMitigatedNodes(prev => new Set([...prev, node.id()]));
           }
@@ -267,13 +268,12 @@ const SupplyChainGraph = ({ attackType, data }) => {
               'text-max-width': '100px',
               'font-size': '14px',
               'font-weight': 'bold',
-              'color': '#fff',
-              'text-outline-color': '#000',
-              'text-outline-width': 2,
+              'color': '#1B5E20',
+              'text-outline-width': 0,
               'padding': '15px',
               'shape': 'round-rectangle',
-              'width': 'label',
-              'height': 'label',
+              'width': 60,
+              'height': 40,
               'transition-property': 'background-color, border-color, border-width',
               'transition-duration': '0.3s'
             }
@@ -335,6 +335,7 @@ const SupplyChainGraph = ({ attackType, data }) => {
           'border-opacity': 1,
           'text-outline-color': '#fff',
           'text-outline-width': 2,
+          'color': '#000',
         });
       });
     }
@@ -458,7 +459,7 @@ const SupplyChainGraph = ({ attackType, data }) => {
             sx={{
               width: '100%',
               flex: 1,
-              minHeight: 0,
+              minHeight: '400px',
               border: '1px solid #2E7D32',
               borderRadius: 1,
               mb: 3,
@@ -483,80 +484,80 @@ const SupplyChainGraph = ({ attackType, data }) => {
             {isSimulating ? `Simulating... (Step ${simulationStep})` : 'Simulate Attack'}
           </Button>
 
-          <Paper 
-            elevation={3} 
-            sx={{ 
-              p: 3, 
+        <Paper 
+          elevation={3} 
+          sx={{ 
+            p: 3, 
               flex: '1 1 40%',
               minWidth: 0,
               background: 'rgba(255, 255, 255, 0.9)',
               border: '1px solid #2E7D32',
               boxShadow: '0 0 10px rgba(46, 125, 50, 0.2)',
-            }}
-          >
-            <Typography 
-              variant="h6" 
-              sx={{ 
+          }}
+        >
+          <Typography 
+            variant="h6" 
+            sx={{ 
                 color: '#2E7D32',
                 textShadow: '0 0 5px rgba(46, 125, 50, 0.5)',
-                mb: 3,
-              }}
-            >
-              Attack Details
-            </Typography>
+              mb: 3,
+            }}
+          >
+            Attack Details
+          </Typography>
 
             <Box sx={{ color: '#4CAF50' }}>
               <Typography variant="h6" sx={{ mb: 2, color: '#2E7D32' }}>Description</Typography>
-              <Typography paragraph>{metadata.description}</Typography>
+            <Typography paragraph>{metadata.description}</Typography>
 
               <Typography variant="h6" sx={{ mb: 2, color: '#2E7D32' }}>Impact</Typography>
-              <Typography paragraph>{metadata.impact}</Typography>
+            <Typography paragraph>{metadata.impact}</Typography>
 
               <Typography variant="h6" sx={{ mb: 2, color: '#2E7D32' }}>Spread Pattern</Typography>
-              <Typography paragraph>{metadata.spreadPattern}</Typography>
+            <Typography paragraph>{metadata.spreadPattern}</Typography>
 
               <Typography variant="h6" sx={{ mb: 2, color: '#2E7D32' }}>Spread Speed</Typography>
-              <Typography paragraph>{metadata.spreadSpeed}</Typography>
+            <Typography paragraph>{metadata.spreadSpeed}</Typography>
 
               <Typography variant="h6" sx={{ mb: 2, color: '#2E7D32' }}>Mitigation Strategies</Typography>
-              <List>
-                {metadata.mitigation.map((strategy, index) => (
-                  <ListItem key={index}>
-                    <ListItemText primary={strategy} />
-                  </ListItem>
-                ))}
-              </List>
+            <List>
+              {metadata.mitigation.map((strategy, index) => (
+                <ListItem key={index}>
+                  <ListItemText primary={strategy} />
+                </ListItem>
+              ))}
+            </List>
 
               <Typography variant="h6" sx={{ mb: 2, color: '#2E7D32' }}>Attack Indicators</Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {metadata.indicators.map((indicator, index) => (
-                  <Chip 
-                    key={index}
-                    label={indicator}
-                    sx={{ 
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {metadata.indicators.map((indicator, index) => (
+                <Chip 
+                  key={index}
+                  label={indicator}
+                  sx={{ 
                       backgroundColor: 'rgba(46, 125, 50, 0.1)',
                       color: '#2E7D32',
                       border: '1px solid #2E7D32',
-                    }}
-                  />
-                ))}
-              </Box>
+                  }}
+                />
+              ))}
+            </Box>
 
               <Typography variant="h6" sx={{ mb: 2, mt: 2, color: '#2E7D32' }}>Affected Components</Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {metadata.affectedComponents.map((component, index) => (
-                  <Chip 
-                    key={index}
-                    label={component}
-                    sx={{ 
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {metadata.affectedComponents.map((component, index) => (
+                <Chip 
+                  key={index}
+                  label={component}
+                  sx={{ 
                       backgroundColor: 'rgba(46, 125, 50, 0.1)',
                       color: '#2E7D32',
                       border: '1px solid #2E7D32',
-                    }}
-                  />
-                ))}
-              </Box>
+                  }}
+                />
+              ))}
             </Box>
+          </Box>
           </Paper>
         </Paper>
       </Box>
