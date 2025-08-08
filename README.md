@@ -56,7 +56,7 @@ The app will start at **http://localhost:3000**
 
 - **Frontend:** React.js
 - **Graph Visualization:** Cytoscape.js & react-cytoscapejs
-- **Styling:** CSS / Tailwind (if used)
+- **Styling:** CSS 
 
 ---
 
